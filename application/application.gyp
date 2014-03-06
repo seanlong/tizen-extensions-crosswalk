@@ -9,7 +9,13 @@
       'sources': [
         '../common/extension.cc',
         '../common/extension.h',
+        'application.cc',
+        'application.h',
         'application_api.js',
+        'application_context.cc',
+        'application_context.h',
+        'application_dbus_agent.cc',
+        'application_dbus_agent.h',
         'application_extension.cc',
         'application_extension.h',
         'application_information.cc',

@@ -14,7 +14,7 @@ const char kRuntimeRunningAppInterface[] =
     "org.crosswalkproject.Running.Application1";
 
 const char kLauncherConnectionAddressPrefix[] =
-    "unix:abstract=/tmp/xwalk-launcher-";
+    "unix:path=/tmp/xwalk-launcher-";
 
 const char kLauncherDBusObjectPath[] = "/launcher1";
 
@@ -57,12 +57,15 @@ GDBusProxy* ConnectToRuntimeRunningApp(const std::string& xwalk_app_id) {
 GDBusProxy* ConnectToLauncherApp(const std::string& xwalk_app_id) {
   std::string conn_address = kLauncherConnectionAddressPrefix + xwalk_app_id;
   GError* error = NULL;
-  GDBusConnection* connection = g_dbus_connection_new_for_address_sync(
+  GDBusConnection* connection;
+
+  connection = g_dbus_connection_new_for_address_sync(
       conn_address.c_str(), G_DBUS_CONNECTION_FLAGS_AUTHENTICATION_CLIENT,
       NULL, NULL, &error);
   if (!connection) {
-    g_printerr("Error connecting to D-Bus address %s\n", error->message);
-    g_error_free (error);
+    g_printerr("Error connecting to D-Bus at address %s: %s\n",
+               conn_address.c_str(), error->message);
+    g_error_free(error);
     return NULL;
   }
 
@@ -94,8 +97,9 @@ void FinishAppOperation(GObject* source_object,
     return;
   }
 
-  callback->Run(value);
+  (*callback)(value);
   g_variant_unref(value);
+  delete callback;
 }
 
 }  // namespace
@@ -161,15 +165,17 @@ GVariant* ApplicationDBusAgent::HideCurrentApp() {
 }
 
 void ApplicationDBusAgent::LaunchApp(const std::string& app_id,
-                                     AppDBusCallback* callback) {
+                                     AppDBusCallback callback) {
+  AppDBusCallback* saved_callback = new AppDBusCallback(callback);
   g_dbus_proxy_call(launcher_proxy_, "LaunchApp", g_variant_new("(s)",
                     app_id.c_str()), G_DBUS_CALL_FLAGS_NONE, -1, NULL,
-                    FinishAppOperation, callback);
+                    FinishAppOperation, saved_callback);
 }
 
 void ApplicationDBusAgent::KillApp(const std::string& context_id,
-                                   AppDBusCallback* callback) {
+                                   AppDBusCallback callback) {
+  AppDBusCallback* saved_callback = new AppDBusCallback(callback);
   g_dbus_proxy_call(launcher_proxy_, "KillApp", g_variant_new("(s)",
                     context_id.c_str()), G_DBUS_CALL_FLAGS_NONE, -1, NULL,
-                    FinishAppOperation, callback);
+                    FinishAppOperation, saved_callback);
 }

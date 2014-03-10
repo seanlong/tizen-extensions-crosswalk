@@ -6,7 +6,6 @@
 
 #include <memory>
 #include <iostream>
-#include <functional>
 #include <string>
 #include <sstream>
 
@@ -31,17 +30,6 @@ void SetJSCallbackId(picojson::value& msg, double id) {
 }
 
 }  // namespace
-
-AsyncMessageCallback::AsyncMessageCallback(ApplicationInstance* runner,
-                                           double callback_id)
-    : runner_(runner),
-      callback_id_(callback_id) {
-}
-
-void AsyncMessageCallback::Run(const picojson::object& obj) {
-  runner_->ReturnMessageAsync(callback_id_, obj);
-  delete this;
-}
 
 ApplicationInstance::ApplicationInstance(Application* current_app)
     : application_(current_app) {
@@ -164,15 +152,17 @@ void ApplicationInstance::HandleGetAppsContext(picojson::value& msg) {
 
 void ApplicationInstance::HandleKillApp(picojson::value& msg) {
   std::string context_id = msg.get("id").to_str();
-  AsyncMessageCallback* callback =
-      new AsyncMessageCallback(this, GetJSCallbackId(msg));
+  AsyncMessageCallback callback =
+      std::bind(&ApplicationInstance::ReturnMessageAsync,
+                this, GetJSCallbackId(msg), std::placeholders::_1);
   application_->KillApp(context_id, callback);
 }
 
 void ApplicationInstance::HandleLaunchApp(picojson::value& msg) {
   std::string app_id = msg.get("id").to_str();
-  AsyncMessageCallback* callback =
-      new AsyncMessageCallback(this, GetJSCallbackId(msg));
+  AsyncMessageCallback callback =
+      std::bind(&ApplicationInstance::ReturnMessageAsync,
+                this, GetJSCallbackId(msg), std::placeholders::_1);
   application_->LaunchApp(app_id, callback);
 }
 

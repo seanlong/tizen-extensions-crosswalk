@@ -7,6 +7,7 @@
 
 #include <gio/gio.h>
 #include <memory>
+#include <functional>
 
 #include "application/application_instance.h"
 
@@ -16,20 +17,7 @@ using AsyncMessageCallback = ApplicationInstance::AsyncMessageCallback;
 
 class Application {
  public:
-  typedef picojson::object (Application::*PtrDBusCallback)(GVariant*);
-
-  class AppDBusCallback {
-   public:
-    AppDBusCallback(Application* runner,
-                    AsyncMessageCallback* msg_callback,
-                    PtrDBusCallback callback);
-    void Run(GVariant* value);
-
-   private:
-    Application* runner_;
-    AsyncMessageCallback* msg_callback_;
-    PtrDBusCallback callback_;
-  };
+  typedef std::function<picojson::object(GVariant*)> AppDBusCallback;
 
   static Application* Create(const std::string& pkg_id);
 
@@ -40,8 +28,8 @@ class Application {
   picojson::value Exit();
   picojson::value Hide();
 
-  void KillApp(const std::string& context_id, AsyncMessageCallback* callback);
-  void LaunchApp(const std::string& app_id, AsyncMessageCallback* callback);
+  void KillApp(const std::string& context_id, AsyncMessageCallback callback);
+  void LaunchApp(const std::string& app_id, AsyncMessageCallback callback);
 
   const std::string& app_id() const { return app_id_; }
   const std::string& pkg_id() const { return pkg_id_; }
@@ -51,9 +39,9 @@ class Application {
               const std::string& app_id,
               ApplicationDBusAgent* dbus_agent);
  
-  picojson::object LaunchAppCallback(GVariant* value);
-  picojson::object KillAppCallback(GVariant* value);
- 
+  picojson::object HandleErrorCodeResult(AsyncMessageCallback callback,
+                                         GVariant* value);
+
   std::string app_id_;
   std::string pkg_id_;
   std::string context_id_;

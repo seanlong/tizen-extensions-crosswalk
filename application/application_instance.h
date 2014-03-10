@@ -5,6 +5,8 @@
 #ifndef APPLICATION_APPLICATION_INSTANCE_H_
 #define APPLICATION_APPLICATION_INSTANCE_H_
 
+#include <functional>
+
 #include "common/extension.h"
 #include "common/picojson.h"
 
@@ -12,15 +14,7 @@ class Application;
 
 class ApplicationInstance : public common::Instance {
  public:
-  class AsyncMessageCallback {
-   public:
-    AsyncMessageCallback(ApplicationInstance* runner, double callback_id);
-    void Run(const picojson::object& obj);
-
-   private:
-    ApplicationInstance* runner_;
-    double callback_id_;
-  };
+  typedef std::function<void(const picojson::object&)> AsyncMessageCallback;
 
   explicit ApplicationInstance(Application* current_app);
   ~ApplicationInstance();

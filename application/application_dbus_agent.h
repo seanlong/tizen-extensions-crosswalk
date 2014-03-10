@@ -20,9 +20,8 @@ class ApplicationDBusAgent {
   GVariant* ExitCurrentApp();
   GVariant* HideCurrentApp();
 
-
-  void LaunchApp(const std::string& app_id, AppDBusCallback* callback);
-  void KillApp(const std::string& context_id, AppDBusCallback* callback);
+  void LaunchApp(const std::string& app_id, AppDBusCallback callback);
+  void KillApp(const std::string& context_id, AppDBusCallback callback);
 
  private:
   ApplicationDBusAgent(GDBusProxy* runtime_app_proxy,

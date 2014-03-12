@@ -31,8 +31,8 @@ GDBusProxy* ConnectToRuntimeRunningApp(GDBusConnection* connection,
       connection, G_DBUS_PROXY_FLAGS_NONE, NULL, kRuntimeServiceName,
       path.c_str(), kRuntimeRunningAppInterface, NULL, &error);
   if (!proxy) {
-    g_print("Couldn't create proxy for '%s': %s\n",
-            kRuntimeRunningAppInterface, error->message);
+    std::cerr << "Couldn't create proxy for " << kRuntimeRunningAppInterface
+              << ": " << error->message << std::endl;
     g_error_free(error);
     return NULL;
   }
@@ -56,8 +56,9 @@ GDBusProxy* ConnectToLauncherApp(GDBusConnection* connection,
       kLauncherDBusObjectPath, kLauncherDBusApplicationInterface, NULL, &error);
   g_variant_unref(value);
   if (!proxy) {
-    g_print("Couldn't create proxy for '%s': %s\n",
-            kLauncherDBusApplicationInterface, error->message);
+    std::cerr << "Couldn't create proxy for "
+              << kLauncherDBusApplicationInterface
+              << ": " << error->message << std::endl;
     g_error_free(error);
     return NULL;
   }
@@ -75,13 +76,13 @@ void FinishAppOperation(GObject* source_object,
 
   value = g_dbus_proxy_call_finish(proxy, res, &error);
   if (!value) {
-    std::cerr << "Failed to run app operation:" << error->message;
+    std::cerr << "Failed to run app operation:" << error->message << std::endl;
     g_error_free(error);
-    return;
   }
 
   (*callback)(value);
-  g_variant_unref(value);
+  if (value)
+    g_variant_unref(value);
   delete callback;
 }
 
@@ -93,8 +94,8 @@ ApplicationDBusAgent* ApplicationDBusAgent::Create(
   GDBusConnection* connection =
       g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, &error);
   if (!connection) {
-    fprintf(stderr, "Couldn't get the session bus connection: %s\n",
-            error->message);
+    std::cerr << "Couldn't get the session bus connection: "
+              << error->message << std::endl;
     g_error_free(error);
     return NULL;
   }
@@ -118,21 +119,32 @@ ApplicationDBusAgent::ApplicationDBusAgent(GDBusProxy* runtime_app_proxy,
       launcher_proxy_(launcher_app_proxy) {
 }
 
-pid_t ApplicationDBusAgent::GetLauncherPid() {
+GVariant* ApplicationDBusAgent::GetLauncherPid() {
   GError* error = NULL;
   GVariant* result = g_dbus_proxy_call_sync(launcher_proxy_, "GetPid",
                                             NULL, G_DBUS_CALL_FLAGS_NONE,
                                             -1, NULL, &error);
   if (!result) {
-    std::cerr << "Couldn't call 'GetPid' method:" << error->message;
+    std::cerr << "Couldn't call 'GetPid' method:"
+              << error->message << std::endl;
     g_error_free(error);
-    return -1;
+    return NULL;
   }
+  return result;
+}
 
-  pid_t pid;
-  g_variant_get(result, "(i)", &pid);
-  g_variant_unref(result);
-  return pid;
+GVariant* ApplicationDBusAgent::GetAppIdByPid(int pid) {
+  GError* error = NULL;
+  GVariant* result = g_dbus_proxy_call_sync(
+      launcher_proxy_, "GetAppIdByPid", g_variant_new("(i)", pid),
+      G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error);
+  if (!result) {
+    std::cerr << "Couldn't call 'GetAppIdByPid' method:"
+              << error->message << std::endl;
+    g_error_free(error);
+    return NULL;
+  }
+  return result;
 }
 
 GVariant* ApplicationDBusAgent::ExitCurrentApp() {
@@ -143,7 +155,8 @@ GVariant* ApplicationDBusAgent::ExitCurrentApp() {
                                             NULL, G_DBUS_CALL_FLAGS_NONE,
                                             -1, NULL, &error);
   if (!result) {
-    std::cerr << "Couldn't call 'Exit' method:" << error->message;
+    std::cerr << "Couldn't call 'Exit' method:" << error->message << std::endl;
+    g_error_free(error);
     return NULL;
   }
   return result;
@@ -154,7 +167,8 @@ GVariant* ApplicationDBusAgent::HideCurrentApp() {
   GVariant* result = g_dbus_proxy_call_sync(
       runtime_proxy_, "Hide", NULL, G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error);
   if (!result) {
-    std::cerr << "Couldn't call 'Hide' method:" << error->message;
+    std::cerr << "Couldn't call 'Hide' method:" << error->message << std::endl;
+    g_error_free(error);
     return NULL;
   }
   return result;

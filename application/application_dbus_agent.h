@@ -9,16 +9,16 @@
 
 #include <string>
 
-#include "application/application.h"
+#include "application/application_manager.h"
 
-using AppDBusCallback = Application::AppDBusCallback;
+using AppDBusCallback = ApplicationManager::AppDBusCallback;
 
 class ApplicationDBusAgent {
  public:
   static ApplicationDBusAgent* Create(const std::string& xwalk_app_id);
 
-  pid_t GetLauncherPid();
-
+  GVariant* GetLauncherPid();
+  GVariant* GetAppIdByPid(int pid);
   GVariant* ExitCurrentApp();
   GVariant* HideCurrentApp();
 
